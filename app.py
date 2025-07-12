@@ -11,8 +11,7 @@ def calcular_hr(T, Td):
     Td = float(Td)
     return 100 * np.exp(
         (17.62 * Td) / (243.12 + Td) -
-        (17.62 * T) / (243.12 + T)
-    )
+        (17.62 * T) / (243.12 + T)    )
 
 def decodificar_temp(codigo):
     if pd.isna(codigo) or len(str(codigo)) != 5:
@@ -29,8 +28,12 @@ def obtener_synop():
     hoy = datetime.utcnow()
     inicio = hoy - timedelta(days=1)
 
-    d1, m1, y1 = inicio.day, inicio.month, inicio.year
-    d2, m2, y2 = hoy.day, hoy.month, hoy.year
+    d1= inicio.day
+    m1= inicio.month
+    y1= inicio.year
+    d2= hoy.day
+    m2= hoy.month
+    y2= hoy.year
 
     horaUTC = hoy.hour
     if hoy.minute <= 10:
@@ -61,7 +64,7 @@ def obtener_synop():
         if line.endswith("=") or line.endswith("=="):
             synops.append(" ".join(current_synop))
             current_synop = []
-            if len(synops) >= 12:
+            if len(synops) >= 10:
                 break
     if not synops:
         return []
@@ -72,10 +75,20 @@ def obtener_synop():
         columns=["FechaHora", "Codigo Estación", "Visibilidad", "Viento", "Temperatura", "Td", "Resto"]
     )
 
+    salida = []
+
     for synop in synops:
         tokens = synop.split()
         tokens = tokens[2:]
-        fecha_hora, codigo_estacion, visibilidad, viento, temperatura, td, *resto = tokens
+
+        fecha_hora = tokens[0]
+        codigo_estacion = tokens[1]
+        visibilidad = tokens[2]
+        viento = tokens[3]
+        temperatura = tokens[4]
+        td = tokens[5]
+        resto = " ".join(tokens[6:])
+
         df_synop.loc[len(df_synop)] = [
             fecha_hora,
             codigo_estacion,
@@ -83,28 +96,29 @@ def obtener_synop():
             viento,
             temperatura,
             td,
-            " ".join(resto),
+            resto,
         ]
+
+        synop_clean = " ".join(tokens)
+        salida.append(synop_clean)
 
     df_synop["T_C"] = df_synop["Temperatura"].apply(decodificar_temp)
     df_synop["Td_C"] = df_synop["Td"].apply(decodificar_temp)
     df_synop["HR"] = df_synop.apply(lambda row: calcular_hr(row["T_C"], row["Td_C"]), axis=1)
 
-    salida = []
-    for idx, row in df_synop.iterrows():
-        salida.append(f"{row['FechaHora']} | T={row['T_C']:.1f}°C | Td={row['Td_C']:.1f}°C | HR={int(row['HR'])}%")
+    hr_list = [int(round(hr)) for hr in df_synop["HR"]]
 
-    return salida
+    return salida, hr_list
 
 @app.route("/")
 def index():
-    synop_data = obtener_synop()
-    if not synop_data:
-        return "<h2>No se encontraron SYNOP</h2>"
-    html = "<h2>Últimos 12 SYNOP para estación 87344</h2><ul>"
-    for line in synop_data:
-        html += f"<li>{line}</li>"
+    synops, hr_list = obtener_synop()
+
+    html = "<h2>Últimos 10 SYNOP para estación 87344</h2><ul>"
+    for idx, (synop, hr) in enumerate(zip(synops, hr_list), 1):
+        html += f"<li>{synop} | HR={hr}%</li>"
     html += "</ul>"
+
     return render_template_string(html)
 
 if __name__ == "__main__":
