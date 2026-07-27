@@ -45,6 +45,9 @@ def obtener_synop():
     response = requests.get(url)
     response.raise_for_status()
     text = response.text
+    print("URL OGIMET:", url)
+    print("RESPUESTA OGIMET:")
+    print(text[:3000])
 
     lines = text.splitlines()
     for i, line in enumerate(lines):
