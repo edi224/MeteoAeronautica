@@ -26,20 +26,21 @@ def decodificar_temp(codigo):
 
 def obtener_synop():
     hoy = datetime.now(timezone.utc)
-    inicio = hoy - timedelta(days=1)
 
-    d1= inicio.day
-    m1= inicio.month
-    y1= inicio.year
+    hora_consulta = hoy
+    if hoy.minute <= 10:
+        hora_consulta = hoy - timedelta(hours=1)
+
+    inicio = hora_consulta - timedelta(days=1)
+
+    d1 = inicio.day
+    m1 = inicio.month
+    y1 = inicio.year
+
     d2 = hora_consulta.day
     m2 = hora_consulta.month
     y2 = hora_consulta.year
 
-    hora_consulta = hoy
-    
-    if hoy.minute <= 10:
-        hora_consulta = hoy - timedelta(hours=1)
-    
     horaUTC = hora_consulta.hour
 
     url = (f"https://www.ogimet.com/display_synopsc2.php?estado=Arg&tipo=ALL&ord=REV&nil=SI&fmt=txt"
