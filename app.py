@@ -1,6 +1,6 @@
 from flask import Flask, render_template_string
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
 
@@ -25,7 +25,7 @@ def decodificar_temp(codigo):
     return temp
 
 def obtener_synop():
-    hoy = datetime.utcnow()
+    hoy = datetime.now(timezone.utc)
     inicio = hoy - timedelta(days=1)
 
     d1= inicio.day
