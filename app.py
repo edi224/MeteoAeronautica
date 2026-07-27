@@ -43,8 +43,13 @@ def obtener_synop():
 
     horaUTC = hora_consulta.hour
 
-    url = (f"https://www.ogimet.com/display_synopsc2.php?estado=Arg&tipo=ALL&ord=REV&nil=SI&fmt=txt"
-           f"&ano={y1}&mes={m1}&day={d1}&hora={horaUTC}&anof={y2}&mesf={m2}&dayf={d2}&horaf={horaUTC}&enviar=Ver")
+    url = (
+        f"https://www.ogimet.com/display_synops2.php?"
+        f"lang=es&lugar=87344&tipo=ALL&ord=REV&nil=SI&fmt=txt"
+        f"&ano={y1}&mes={m1}&day={d1}&hora={horaUTC}"
+        f"&anof={y2}&mesf={m2}&dayf={d2}&horaf={horaUTC}"
+        f"&enviar=Ver"
+    )
 
     response = requests.get(url, timeout=30)
     response.raise_for_status()
