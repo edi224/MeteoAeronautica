@@ -52,7 +52,7 @@ def obtener_synop():
             start_idx = i + 2
             break
     else:
-        return []
+        return [], []
 
     synops = []
     current_synop = []
@@ -67,7 +67,7 @@ def obtener_synop():
             if len(synops) >= 10:
                 break
     if not synops:
-        return []
+        return [], []
 
     synops.reverse()
 
@@ -115,8 +115,13 @@ def index():
     synops, hr_list = obtener_synop()
 
     html = "<h2>Últimos 10 SYNOP para estación 87344</h2><ul>"
-    for idx, (synop, hr) in enumerate(zip(synops, hr_list), 1):
-        html += f"<li>{synop} | HR={hr}%</li>"
+
+    if not synops:
+        html += "<li>No se encontraron datos SYNOP para la estación 87344.</li>"
+    else:
+        for synop, hr in zip(synops, hr_list):
+            html += f"<li>{synop} | HR={hr}%</li>"
+
     html += "</ul>"
 
     return render_template_string(html)
