@@ -31,18 +31,21 @@ def obtener_synop():
     d1= inicio.day
     m1= inicio.month
     y1= inicio.year
-    d2= hoy.day
-    m2= hoy.month
-    y2= hoy.year
+    d2 = hora_consulta.day
+    m2 = hora_consulta.month
+    y2 = hora_consulta.year
 
-    horaUTC = hoy.hour
+    hora_consulta = hoy
+    
     if hoy.minute <= 10:
-        horaUTC -= 1
+        hora_consulta = hoy - timedelta(hours=1)
+    
+    horaUTC = hora_consulta.hour
 
     url = (f"https://www.ogimet.com/display_synopsc2.php?estado=Arg&tipo=ALL&ord=REV&nil=SI&fmt=txt"
            f"&ano={y1}&mes={m1}&day={d1}&hora={horaUTC}&anof={y2}&mesf={m2}&dayf={d2}&horaf={horaUTC}&enviar=Ver")
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     text = response.text
     print("URL OGIMET:", url)
@@ -50,28 +53,22 @@ def obtener_synop():
     print(text[:3000])
 
     lines = text.splitlines()
-    for i, line in enumerate(lines):
-        if "87344" in line:
-            start_idx = i + 2
-            break
-    else:
-        return [], []
 
     synops = []
-    current_synop = []
-    for line in lines[start_idx:]:
+
+    for line in lines:
         line = line.strip()
-        if not line or line.startswith("#"):
+
+    # Buscar solamente mensajes SYNOP de la estación 87344
+        if " 87344 AAXX " in line:
+            synops.append(line)
+
+        if len(synops) >= 10:
             break
-        current_synop.append(line)
-        if line.endswith("=") or line.endswith("=="):
-            synops.append(" ".join(current_synop))
-            current_synop = []
-            if len(synops) >= 10:
-                break
+
     if not synops:
         return [], []
-
+    
     synops.reverse()
 
     df_synop = pd.DataFrame(
@@ -81,16 +78,24 @@ def obtener_synop():
     salida = []
 
     for synop in synops:
-        tokens = synop.split()
-        tokens = tokens[2:]
+        tokens_completos = synop.split()
+
+        # Buscar dónde comienza AAXX
+        idx_aaxx = tokens_completos.index("AAXX")
+        
+        # Conservar desde la fecha y eliminar solamente el identificador WIGOS
+        tokens = [
+            tokens_completos[0],
+            *tokens_completos[idx_aaxx:]
+        ]
 
         fecha_hora = tokens[0]
-        codigo_estacion = tokens[1]
-        visibilidad = tokens[2]
-        viento = tokens[3]
-        temperatura = tokens[4]
-        td = tokens[5]
-        resto = " ".join(tokens[6:])
+        codigo_estacion = tokens[3]
+        visibilidad = tokens[4]
+        viento = tokens[5]
+        temperatura = tokens[6]
+        td = tokens[7]
+        resto = " ".join(tokens[8:])
 
         df_synop.loc[len(df_synop)] = [
             fecha_hora,
@@ -102,7 +107,7 @@ def obtener_synop():
             resto,
         ]
 
-        synop_clean = " ".join(tokens)
+        synop_clean = " ".join(tokens[1:])
         salida.append(synop_clean)
 
     df_synop["T_C"] = df_synop["Temperatura"].apply(decodificar_temp)
